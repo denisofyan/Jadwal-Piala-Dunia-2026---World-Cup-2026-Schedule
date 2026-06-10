@@ -849,24 +849,37 @@ function parseFixtures(response){
 }
 
 // ── Parse standings response → API_STANDINGS ────────────
+// ── Parse standings response → API_STANDINGS ────────────
+// Format baru dari /api/standings:
+// response = { A:[...], B:[...], ..., L:[...] }
 function parseStandings(response){
   API_STANDINGS = {};
-  (response||[]).forEach(function(league){
-    (league.league.standings||[]).forEach(function(group){
-      if(!Array.isArray(group)) return;
-      group.forEach(function(row){
-        var g=(row.group||'').replace(/^Group /i,'').trim().toUpperCase();
-        if(!g||g.length>1) return;
-        if(!API_STANDINGS[g]) API_STANDINGS[g]=[];
-        API_STANDINGS[g].push({
-          name:toId(row.team.name), pts:row.points||0,
-          m:row.all.played||0, w:row.all.win||0, d:row.all.draw||0, l:row.all.lose||0,
-          gf:row.all.goals.for||0, ga:row.all.goals.against||0
-        });
-      });
+
+  if(!response || typeof response !== 'object' || Array.isArray(response)){
+    return;
+  }
+
+  Object.keys(response).forEach(function(groupKey){
+    var g = String(groupKey || '').trim().toUpperCase();
+    if(!g) return;
+
+    API_STANDINGS[g] = (response[groupKey] || []).map(function(row){
+      return {
+        name: toId(row.name || ''),
+        flag: row.flag || '',
+        pts: Number(row.pts || 0),
+        m: Number(row.m || 0),
+        w: Number(row.w || 0),
+        d: Number(row.d || 0),
+        l: Number(row.l || 0),
+        gf: Number(row.gf || 0),
+        ga: Number(row.ga || 0),
+        gd: Number(row.gd || 0)
+      };
     });
   });
 }
+
 
 // ── Fetch fixtures (quota-aware + cache) ─────────────────
 async function fetchApiScores(){
