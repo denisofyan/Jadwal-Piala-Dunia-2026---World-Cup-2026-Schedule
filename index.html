@@ -247,7 +247,7 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 <!-- FOOTER -->
 <div class="footer">
   <div id="api-indicator" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 14px;border-radius:20px;border:1px solid var(--border);margin-bottom:12px;color:var(--muted);background:rgba(255,255,255,0.03)">⏳ Menghubungkan ke API...</div>
-  <div class="footer-text">Data jadwal resmi FIFA &middot; Skor &amp; klasemen live dari api-football.com &middot; Waktu WIB (UTC+7) &middot; <span id="update-interval-label">Update otomatis</span></div>
+  <div class="footer-text">Data jadwal resmi FIFA &middot; Skor &amp; klasemen live dari worldcup26.ir &middot; Waktu WIB (UTC+7) &middot; <span id="update-interval-label">Update otomatis</span></div>
   <div class="footer-brand">Deploy by <span>Maulana</span> &mdash; Piala Dunia 2026</div>
 </div>
 
@@ -691,20 +691,11 @@ function switchView(id,btn){
 }
 
 // ═══════════════════════════════════════════════════════
-// API INTEGRATION — api-football (api-sports.io)
+// API INTEGRATION — worldcup26.ir (World Cup 2026)
 // Frontend endpoint: /api/fixtures & /api/standings (Vercel serverless proxy)
-// League   : 1 (FIFA World Cup)   Season : 2026
-// Serverless route injects x-apisports-key from process.env.API_FOOTBALL_KEY
+// Data from: https://worldcup26.ir/get/games & /get/groups & /get/teams
+// No API key required for read access
 // ═══════════════════════════════════════════════════════
-// ── SMART QUOTA MANAGER ─────────────────────────────────
-// Limit: 100 req/day  →  strategi hemat request:
-//   • LIVE game aktif   : update tiap 5 menit  (2 req × 12x = 24 req)
-//   • Ada game hari ini : update tiap 15 menit (2 req × 4x  = 8 req/sesi)
-//   • Tidak ada game    : update tiap 2 jam    (2 req sekali jalan)
-//   • Standings         : max 1x per 6 jam (tidak perlu sering)
-//   • Cache localStorage: fixtures & standings disimpan, dibaca saat reload
-//   • Quota reset jam 00:00 UTC setiap hari
-// ────────────────────────────────────────────────────────
 
 var API_KEY   = ''; // API key disimpan di Vercel env, bukan frontend
 var API_BASE  = ''; // pakai Vercel serverless proxy: /api/fixtures dan /api/standings
@@ -906,13 +897,8 @@ async function fetchApiScores(){
     return true;
   }
 
-  // 3. Cek quota sebelum fetch
-  if(!quotaOK()){
-    console.warn('[Quota] Batas harian tercapai ('+ getQuota() +'/'+QUOTA_LIMIT+'). Pakai data cache lama.');
-    var staleCache = cacheGet(LS_FIXTURES, 24*60*60*1000); // cache maks 24 jam
-    if(staleCache){ parseFixtures(staleCache); apiAvailable=true; }
-    return apiAvailable;
-  }
+// quota check removed — worldcup26.ir has no request limit
+
 
   // 4. Fetch dari API
   try {
@@ -924,10 +910,10 @@ async function fetchApiScores(){
     parseFixtures(data.response||[]);
     cacheSet(LS_FIXTURES, data.response||[]);
     lastApiUpdate=now; apiAvailable=true;
-    console.log('[API-Football] Fixtures OK:', (data.response||[]).length, '| Quota hari ini:', q+'/'+QUOTA_LIMIT);
+    console.log('[WorldCup2026] Fixtures OK:', (data.response||[]).length, '| Quota hari ini:', q+'/'+QUOTA_LIMIT);
     return true;
   } catch(e){
-    console.warn('[API-Football] Fixtures ERR:',e.message);
+    console.warn('[WorldCup2026] Fixtures ERR:',e.message);
     // Fallback ke cache lama jika ada
     var stale = cacheGet(LS_FIXTURES, 24*60*60*1000);
     if(stale){ parseFixtures(stale); apiAvailable=true; return true; }
@@ -950,13 +936,8 @@ async function fetchApiStandings(){
     return;
   }
 
-  // Cek quota
-  if(!quotaOK()){
-    console.warn('[Quota] Standings dilewati — quota hampir habis.');
-    var stale = cacheGet(LS_STANDINGS, 24*60*60*1000);
-    if(stale) parseStandings(stale);
-    return;
-  }
+// quota check removed — worldcup26.ir has no request limit
+
 
   try {
     var res = await fetch('/api/standings?league='+WC_LEAGUE+'&season='+WC_SEASON);
@@ -967,9 +948,9 @@ async function fetchApiStandings(){
     parseStandings(data.response||[]);
     cacheSet(LS_STANDINGS, data.response||[]);
     lastStandingsUpd = now;
-    console.log('[API-Football] Standings OK:', Object.keys(API_STANDINGS).join(','), '| Quota hari ini:', q+'/'+QUOTA_LIMIT);
+    console.log('[WorldCup2026] Standings OK:', Object.keys(API_STANDINGS).join(','), '| Quota hari ini:', q+'/'+QUOTA_LIMIT);
   } catch(e){
-    console.warn('[API-Football] Standings ERR:',e.message);
+    console.warn('[WorldCup2026] Standings ERR:',e.message);
     var stale = cacheGet(LS_STANDINGS, 24*60*60*1000);
     if(stale) parseStandings(stale);
   }
@@ -1061,25 +1042,18 @@ function flagHtml(team){
 function updateApiIndicator(ok){
   var el=document.getElementById('api-indicator');
   if(!el) return;
-  var q = getQuota();
-  var sisa = QUOTA_LIMIT - q;
-  var quotaInfo = ' \u00b7 Sisa kuota: ' + sisa + ' req';
   if(ok){
     var live = hasLiveGame();
-    var today = hasGameToday();
     var statusText = live ? '\uD83D\uDFE2 LIVE \u00b7 Update tiap 5 mnt' :
-                    today ? '\uD83D\uDFE2 Data live api-football.com' :
-                            '\uD83D\uDFE2 Data api-football.com';
-    el.textContent = statusText + quotaInfo;
+                    '\uD83D\uDFE2 Data dari World Cup 2026 API';
+    el.textContent = statusText;
     el.style.background='rgba(59,109,17,0.1)';el.style.borderColor='rgba(59,109,17,0.3)';el.style.color='#7db358';
-  } else if(q >= QUOTA_LIMIT){
-    el.textContent='\uD83D\uDFE1 Kuota habis \u00b7 Menampilkan data cache' + quotaInfo;
-    el.style.background='rgba(239,68,68,0.1)';el.style.borderColor='rgba(239,68,68,0.3)';el.style.color='#f87171';
   } else {
-    el.textContent='\uD83D\uDFE1 API tidak terjangkau \u00b7 Menampilkan data lokal' + quotaInfo;
+    el.textContent='\uD83D\uDFE1 API tidak terjangkau \u00b7 Menampilkan data lokal';
     el.style.background='rgba(239,159,39,0.1)';el.style.borderColor='rgba(239,159,39,0.3)';el.style.color='var(--gold)';
   }
 }
+
 
 async function refreshAll(){
   var ok=await fetchApiScores();
