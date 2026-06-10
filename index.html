@@ -88,11 +88,33 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 .empty{text-align:center;padding:3rem;color:var(--muted);font-size:14px}
 
 /* ─── BRACKET ─── */
-#view-bracket{overflow-x:auto}
-.bracket-wrap{min-width:900px;padding:20px 0}
-.bracket-stage-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;text-align:center}
+#view-bracket{
+  overflow-x:auto;
+  padding-bottom:20px;
+}
+.bracket-wrap{
+  min-width:1000px;
+  padding:20px 4px;
+}
+.bracket-stage-label{
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+  text-align:center;
+  white-space:nowrap;
+}.bracket-stage-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;text-align:center}
 .bracket-grid{display:flex;gap:0;align-items:flex-start}
-.bracket-col{flex:1;min-width:150px;display:flex;flex-direction:column;gap:8px;padding:0 6px}
+.bracket-col{
+  flex:1;
+  min-width:120px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:0 4px;
+}
 .bracket-match{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;position:relative}
 .bracket-match.winner-match{border-color:var(--gold)}
 .bracket-match .bm-team{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}
@@ -563,19 +585,20 @@ function renderBracket(){
     if(si<stages.length-1){
       html+='<div style="width:1px;background:linear-gradient(to bottom,transparent,var(--border),transparent);flex-shrink:0;align-self:stretch;min-height:200px"></div>';
     }
+    // Tambah kolom Perebutan Juara 3 setelah SF, sebelum FINAL
+var jrk3=M.find(x=>x.stage==='Jrk3');
+if(jrk3 && si === stages.length - 2){
+  html+='<div style="width:1px;background:linear-gradient(to bottom,transparent,var(--border),transparent);flex-shrink:0;align-self:stretch;min-height:200px"></div>';
+  html+='<div style="flex-shrink:0;min-width:160px">';
+  html+='<div class="bracket-stage-label" style="color:#EF9F27">🥉 Perebutan Juara 3</div>';
+  html+='<div class="bracket-match" style="margin-bottom:8px">';
+  html+='<div class="bm-team"><span class="bm-flag">❓</span><span class="bm-name bm-tbd">Pekalah Semifinal 1</span></div>';
+  html+='<div class="bm-team"><span class="bm-flag">❓</span><span class="bm-name bm-tbd">Pekalah Semifinal 2</span></div>';
+  html+='<div class="bm-time">'+fmtDate(jrk3.d)+' · '+fmtWIB(jrk3.d)+'</div>';
+  html+='</div></div>';
+}
   });
   html+='</div>';
-
-  // Juara 3
-  var jrk3=M.find(x=>x.stage==='Jrk3');
-  if(jrk3){
-    html+='<div style="margin-top:24px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;max-width:300px">';
-    html+='<div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">🥉 Perebutan Juara 3</div>';
-    html+='<div class="bm-team"><span class="bm-flag">❓</span><span class="bm-name bm-tbd">Pekalah Semifinal 1</span></div>';
-    html+='<div class="bm-team"><span class="bm-flag">❓</span><span class="bm-name bm-tbd">Pekalah Semifinal 2</span></div>';
-    html+='<div class="bm-time">'+fmtDate(jrk3.d)+' · '+fmtWIB(jrk3.d)+' · Hard Rock Stadium, Miami</div>';
-    html+='</div>';
-  }
   bc.innerHTML=html;
 }
 
