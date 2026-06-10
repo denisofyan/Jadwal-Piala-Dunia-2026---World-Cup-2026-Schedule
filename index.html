@@ -707,9 +707,9 @@ var lastApiUpdate    = 0;
 var lastStandingsUpd = 0;
 
 // ── Interval adaptif (ms) ───────────────────────────────
-var INTERVAL_LIVE    = 5  * 60 * 1000;  //  5 menit  – ada live match
-var INTERVAL_TODAY   = 15 * 60 * 1000;  // 15 menit  – ada game hari ini
-var INTERVAL_IDLE    = 2  * 60 * 60 * 1000; // 2 jam – tidak ada game
+var INTERVAL_LIVE    = 2  * 60 * 1000;  //  2 menit  – ada live match
+var INTERVAL_TODAY   = 10 * 60 * 1000;  // 10 menit  – ada game hari ini
+var INTERVAL_IDLE    = 1  * 60 * 60 * 1000; // 1 jam – tidak ada game
 var INTERVAL_STANDINGS = 6 * 60 * 60 * 1000; // 6 jam  – standings jarang berubah
 
 var currentInterval  = INTERVAL_IDLE;
