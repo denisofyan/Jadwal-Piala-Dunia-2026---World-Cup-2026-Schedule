@@ -89,8 +89,46 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 
 /* ─── BRACKET ─── */
 #view-bracket{
-  overflow-x:auto;
+  position:relative;
   padding-bottom:20px;
+}
+#bracket-nav{
+  display:none;
+  position:sticky;
+  bottom:10px;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 8px;
+  z-index:10;
+  pointer-events:none;
+}
+#bracket-nav.active{
+  display:flex;
+}
+#bracket-nav button{
+  background:var(--card);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:18px;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:all;
+  flex-shrink:0;
+}
+#bracket-nav button:active{background:var(--panel)}
+
+/* Mobile: kompak */
+@media(max-width:768px){
+  #view-bracket{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .bracket-wrap{min-width:680px}
+  .bracket-col{min-width:90px;padding:0 2px}
+  .bracket-match{padding:6px 8px}
+  .bracket-stage-label{font-size:10px}
 }
 .bracket-wrap{
   min-width:1000px;
@@ -255,9 +293,14 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 
 <!-- ═══ BRACKET VIEW ═══ -->
 <div id="view-bracket" class="view">
-  <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Bagan pertandingan knockout — klik tim untuk melihat rekam jejak</p>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Bagan pertandingan knockout — swipe atau gunakan panah untuk navigasi</p>
+  <div id="bracket-nav">
+    <button onclick="scrollBracket(-1)" title="Kiri">&#8249;</button>
+    <button onclick="scrollBracket(1)" title="Kanan">&#8250;</button>
+  </div>
   <div id="bracket-container"></div>
 </div>
+
 
 <!-- ═══ GRUP VIEW ═══ -->
 <div id="view-grup" class="view">
@@ -555,11 +598,14 @@ function buildRow(x){
 // ═══ BRACKET ═══
 function renderBracket(){
   var bc=document.getElementById('bracket-container');
+  bracketScrollEl = bc;
+  bracketNavEl = document.getElementById('bracket-nav');
+
   var stages=[
-    {label:'32 Besar (28 Jun – 3 Jul)',key:'32',matches:M.filter(x=>x.stage==='32')},
-    {label:'16 Besar (4–7 Jul)',key:'16',matches:M.filter(x=>x.stage==='16')},
-    {label:'Perempat Final (9–11 Jul)',key:'QF',matches:M.filter(x=>x.stage==='QF')},
-    {label:'Semifinal (14–15 Jul)',key:'SF',matches:M.filter(x=>x.stage==='SF')},
+    {label:'R32 (28 Jun – 3 Jul)',key:'32',matches:M.filter(x=>x.stage==='32')},
+    {label:'R16 (4–7 Jul)',key:'16',matches:M.filter(x=>x.stage==='16')},
+    {label:'QF (9–11 Jul)',key:'QF',matches:M.filter(x=>x.stage==='QF')},
+    {label:'SF (14–15 Jul)',key:'SF',matches:M.filter(x=>x.stage==='SF')},
     {label:'Final (19 Jul)',key:'Final',matches:M.filter(x=>x.stage==='Final')}
   ];
 
@@ -586,17 +632,10 @@ function renderBracket(){
       html+='<div style="width:1px;background:linear-gradient(to bottom,transparent,var(--border),transparent);flex-shrink:0;align-self:stretch;min-height:200px"></div>';
     }
     // Tambah kolom Perebutan Juara 3 setelah SF, sebelum FINAL
-var jrk3=M.find(x=>x.stage==='Jrk3');
-if(jrk3 && si === stages.length - 2){
-  html+='<div style="width:1px;background:linear-gradient(to bottom,transparent,var(--border),transparent);flex-shrink:0;align-self:stretch;min-height:200px"></div>';
-  html+='<div style="flex-shrink:0;min-width:160px">';
-  html+='<div class="bracket-stage-label" style="color:#EF9F27">🥉 Perebutan Juara 3</div>';
-  html+='<div class="bracket-match" style="margin-bottom:8px">';
-  html+='<div class="bm-team"><span class="bm-flag">❓</span><span class="bm-name bm-tbd">Pekalah Semifinal 1</span></div>';
-  html+='<div class="bm-team"><span class="bm-flag">❓</span><span class="bm-name bm-tbd">Pekalah Semifinal 2</span></div>';
-  html+='<div class="bm-time">'+fmtDate(jrk3.d)+' · '+fmtWIB(jrk3.d)+'</div>';
-  html+='</div></div>';
-}
+  // Tampilkan nav arrows di mobile
+  if(bracketNavEl){
+    bracketNavEl.classList.toggle('active', window.innerWidth <= 768);
+  }
   });
   html+='</div>';
   bc.innerHTML=html;
@@ -1091,7 +1130,15 @@ async function refreshAll(){
   // Sesuaikan interval secara dinamis setelah data diperbarui
   rescheduleInterval(pickInterval());
 }
+// ─── Bracket Navigation ───
+var bracketScrollEl = null;
+var bracketNavEl = null;
 
+function scrollBracket(dir){
+  if(!bracketScrollEl) return;
+  bracketScrollEl.scrollBy({left: dir * 260, behavior: 'smooth'});
+}
+  
 // ═══ INIT ═══
 renderJadwal();
 
