@@ -477,10 +477,12 @@ function flag(team){return FLAGS[team]||'🏳️'}
 // ════════════════════════════════════════════════════
 var STREAM_LINKS = {};
 
-function getStream(m){
+function getStreams(m){
   var k1 = (m.team1||'')+'|'+(m.team2||'');
   var k2 = (m.team2||'')+'|'+(m.team1||'');
-  return STREAM_LINKS[k1] || STREAM_LINKS[k2] || null;
+  var found = STREAM_LINKS[k1] || STREAM_LINKS[k2] || null;
+  if(!found) return null;
+  return Array.isArray(found) ? found : [found];
 }
 
 // ─── Modal Player ───
@@ -511,16 +513,20 @@ document.addEventListener('keydown', function(e){
 });
 
 // Tombol Tonton — buka modal
-function makeTontonBtn(stream, status, extraClass){
-  if(!stream) return '';
-  var ec  = extraClass||'';
-  var url = stream.url||'';
-  var lbl = stream.label||'Tonton';
-  var safeUrl   = url.replace(/'/g,"\\'");
-  var safeTitle = (lbl).replace(/'/g,"\\'");
-  if(status==='live') return '<button class="btn-tonton t-live '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🔴 LIVE: '+safeTitle+'\')">🔴 '+lbl+' Live</button>';
-  if(status==='done') return '<button class="btn-tonton t-done '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🎬 Highlight: '+safeTitle+'\')">🎬 Highlight</button>';
-  return                     '<button class="btn-tonton t-soon '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'📺 '+safeTitle+'\')">📺 '+lbl+' Nanti</button>';
+function makeTontonBtn(streams, status, extraClass){
+  if(!streams || !streams.length) return '';
+  var ec = extraClass||'';
+  return streams.map(function(s, i){
+    var url = s.url||'';
+    var lbl = s.label||('Stream '+(i+1));
+    var safeUrl   = url.replace(/'/g,"\\'");
+    var safeTitle = lbl.replace(/'/g,"\\'");
+    if(status==='live')
+      return '<button class="btn-tonton t-live '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🔴 LIVE: '+safeTitle+'\')">🔴 '+lbl+'</button>';
+    if(status==='done')
+      return '<button class="btn-tonton t-done '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🎬 '+safeTitle+'\')">🎬 '+lbl+'</button>';
+    return '<button class="btn-tonton t-soon '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'📺 '+safeTitle+'\')">📺 '+lbl+'</button>';
+  }).join(' ');
 }
 
 // Fetch dari /api/stream-data (Vercel serverless)
@@ -578,7 +584,7 @@ function renderTodaySection(){
     var hc    = HEAT_COLORS[x.heat]||'#888';
     var stLbl = x.stage==='32'?'R32':x.stage==='16'?'R16':x.stage==='Jrk3'?'Jrk3':x.stage;
     var f1=flag(x.team1), f2=x.team2?flag(x.team2):'';
-    var stream = getStream(x);
+    var stream = getStreams(x);
 
     // Skor live jika ada dari API
     var scoreTxt='';
@@ -864,7 +870,7 @@ function buildRow(x){
     ?'<span class="status-badge badge-live">● LIVE</span>'
     :isDone?'<span class="status-badge badge-done">Selesai</span>'
     :'<span class="status-badge badge-soon">Segera</span>';
-  var btn=makeTontonBtn(getStream(x), x.status, 'sm');
+  var btn=makeTontonBtn(getStreams(x), x.status, 'sm');
   return '<div class="mr'+(isDone?' done':'')+(isLive?' live-now':'')+'">'+
     '<div class="heat-bar" style="background:'+hc+';opacity:'+(isDone?0.5:1)+'"></div>'+
     '<div class="mt-block"><div class="mt-date">'+fmtDate(x.d)+'</div><div class="mt-time">'+fmtWIB(x.d)+'</div></div>'+
@@ -1328,7 +1334,7 @@ buildRow = function(x){
   var badge=isLive?'<span class="status-badge badge-live">&#9679; LIVE</span>':
     isDone?'<span class="status-badge badge-done">Selesai</span>':
     '<span class="status-badge badge-soon">Segera</span>';
-  var btn=makeTontonBtn(getStream(x), api.status, 'sm');
+  var btn=makeTontonBtn(getStreams(x), api.status, 'sm');
   return '<div class="mr'+(isDone?' done':'')+(isLive?' live-now':'')+'">'+
     '<div class="heat-bar" style="background:'+hc+';opacity:'+(isDone?0.5:1)+'"></div>'+
     '<div class="mt-block"><div class="mt-date">'+fmtDate(x.d)+'</div><div class="mt-time">'+fmtWIB(x.d)+'</div></div>'+
@@ -1428,21 +1434,44 @@ function scrollBracket(dir){
   bracketScrollEl.scrollBy({left: dir * 260, behavior: 'smooth'});
 }
 // ─── Live Banner ───
-function initLiveBanner(){
-  // Buat partikel
-  var pc = document.getElementById('lb-particles');
-  if(pc){
-    for(var i=0;i<18;i++){
-      var p=document.createElement('div');
-      p.className='lb-p';
-      p.style.left=Math.random()*100+'%';
-      p.style.animationDuration=(4+Math.random()*6)+'s';
-      p.style.animationDelay=(Math.random()*6)+'s';
-      p.style.width=p.style.height=(2+Math.random()*3)+'px';
-      pc.appendChild(p);
-    }
+function updateLiveBanner(){
+  var now = Date.now();
+
+  var liveWithStream = M.find(function(x){
+    return getStatus(x,now)==='live' && getStreams(x);
+  });
+  var nextWithStream = M.find(function(x){
+    return getStatus(x,now)==='upcoming' && getStreams(x);
+  });
+  var doneWithStream = M.slice().reverse().find(function(x){
+    return getStatus(x,now)==='done' && getStreams(x);
+  });
+
+  var target = liveWithStream || nextWithStream || doneWithStream;
+  if(!target) return;
+
+  var matchEl = document.getElementById('lb-match');
+  var subEl   = document.getElementById('lb-sub');
+  var btn     = document.getElementById('lb-btn');
+  var status  = getStatus(target, now);
+
+  if(status === 'live'){
+    var t = target.team1+' vs '+target.team2;
+    if(matchEl) matchEl.innerHTML = '🔴 LIVE: <strong>'+t+'</strong>';
+    if(subEl)   subEl.textContent = 'Pertandingan sedang berlangsung sekarang!';
+    if(btn)     btn.innerHTML = '<span class="lb-btn-icon">🔴</span> TONTON LIVE';
+  } else if(status === 'upcoming'){
+    var t2 = target.team1+' vs '+target.team2;
+    if(matchEl) matchEl.innerHTML = 'Berikutnya: <strong>'+t2+'</strong> · '+fmtDate(target.d)+' '+fmtWIB(target.d);
+    if(subEl)   subEl.textContent = 'Stream tersedia untuk pertandingan ini';
+    if(btn)     btn.innerHTML = '<span class="lb-btn-icon">📺</span> TONTON SEKARANG';
+  } else {
+    // done — tawarkan highlight/replay
+    var t3 = target.team1+' vs '+target.team2;
+    if(matchEl) matchEl.innerHTML = 'Highlight: <strong>'+t3+'</strong>';
+    if(subEl)   subEl.textContent = 'Tonton highlight & momen terbaik pertandingan ini';
+    if(btn)     btn.innerHTML = '<span class="lb-btn-icon">🎬</span> TONTON';
   }
-  updateLiveBanner();
 }
 
 function updateLiveBanner(){
@@ -1472,24 +1501,23 @@ function updateLiveBanner(){
 }
 
 function scrollToNextStream(){
-  var now = Date.now();
-  // Cari pertandingan live/berikutnya yang punya stream
   var target = M.find(function(x){
-    return getStatus(x,now)==='live' && getStream(x);
-  }) || M.find(function(x){
-    return getStatus(x,now)!=='done' && getStream(x);
-  });
+  return getStatus(x,now)==='live' && getStreams(x);
+}) || M.find(function(x){
+  return getStatus(x,now)==='upcoming' && getStreams(x);
+}) || M.slice().reverse().find(function(x){
+  return getStatus(x,now)==='done' && getStreams(x);
+});
 
-  if(target){
-    var stream = getStream(target);
-    if(stream){
-      openStreamModal(stream.url, '📺 '+target.team1+' vs '+target.team2);
-      return;
-    }
+if(target){
+  var streams = getStreams(target);
+  if(streams && streams.length){
+    openStreamModal(streams[0].url, '📺 '+target.team1+' vs '+target.team2);
+    return;
   }
-  // Fallback: scroll ke jadwal
+}
   document.getElementById('view-jadwal').scrollIntoView({behavior:'smooth'});
-}  
+}
 
 // ═══ INIT ═══
 renderJadwal();
