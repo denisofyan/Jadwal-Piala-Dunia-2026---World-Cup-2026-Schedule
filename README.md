@@ -20,73 +20,169 @@ Dibuat oleh **Maulana** · Deploy via Vercel.
 | 📡 **API Live** | Skor & klasemen real-time via api-football.com |
 | ♻️ **Auto-update** | Data refresh otomatis setiap 30 detik |
 
----
+# 📺 Panduan Pengelolaan Stream — Jadwal Piala Dunia 2026
 
-## 🔑 Cara Mendapatkan API Key (GRATIS)
-
-Website ini terhubung ke **api-football.com** untuk mendapatkan skor live dan klasemen real-time.
-
-### Langkah-langkah:
-
-1. Buka **[https://www.api-football.com/#pricing](https://www.api-football.com/#pricing)**
-2. Pilih paket **Free** (100 req/hari, cukup untuk website ini)
-3. Kamu akan menerima API key melalui email
-4. Buka file `index.html`, cari baris ini di bagian `<script>`:
-
-```javascript
-var API_KEY = 'YOUR_API_KEY'; // ← ISI API KEY DI SINI
-```
-
-5. Ganti `YOUR_API_KEY` dengan key yang kamu terima, contoh:
-
-```javascript
-var API_KEY = 'wc2026_abcdef1234567890'; // API key kamu
-```
-
-6. Simpan, lalu deploy ulang ke Vercel/GitHub
-
-### ✅ Tanpa API Key
-
-Website tetap berfungsi penuh **tanpa API key** — jadwal, filter, countdown, bagan, dan klasemen tetap tampil menggunakan data lokal yang sudah hardcoded. Yang tidak aktif hanya:
-- Skor real-time di baris pertandingan
-- Update klasemen grup otomatis
+> Website: Jadwal Piala Dunia 2026 · Deploy: Vercel  
+> Dibuat oleh: Maulana
 
 ---
 
-## 🚀 Deploy ke Vercel
+## Cara Kerja Sistem Stream
 
-### Cara 1 — Vercel CLI (Terminal)
-
-```bash
-npm install -g vercel
-cd wc2026_enhanced
-vercel
-vercel --prod
+```
+Vercel Env Var (STREAM_DATA)
+        ↓
+/api/stream-data  ← serverless function, baca env var
+        ↓
+index.html (STREAM_LINKS)
+        ↓
+Tombol "TONTON SEKARANG" → Modal Pilihan → Player
 ```
 
-### Cara 2 — Drag & Drop (Paling Mudah)
-
-1. Buka [vercel.com](https://vercel.com) → Login
-2. Klik **"Add New Project"**
-3. Pilih **"Deploy without Git"** → drag folder `wc2026_enhanced` ke browser
-4. Klik **Deploy** — selesai! ✅
-
-### Cara 3 — GitHub + Vercel (Auto Deploy)
-
-1. Upload folder `wc2026_enhanced` ke GitHub repository
-2. Buka [vercel.com](https://vercel.com) → **"Add New Project"**
-3. Import repository dari GitHub
-4. Klik **Deploy** — setiap `git push` akan auto-deploy
+- URL stream **tidak pernah ada di GitHub** — tersimpan aman di Vercel Environment Variables
+- Untuk ganti/tambah stream, cukup edit env var → redeploy. **Tidak perlu sentuh kode.**
 
 ---
+
+## Format STREAM_DATA
+
+Isi env var `STREAM_DATA` adalah JSON satu baris dengan format:
+
+```json
+{
+  "stream1": {"url": "URL_EMBED", "label": "Nama yang ditampilkan"},
+  "stream2": {"url": "URL_EMBED", "label": "Nama yang ditampilkan"},
+  "stream3": ...
+}
+```
+
+**Key** (`stream1`, `stream2`, dst) bebas — hanya sebagai identifier internal.  
+**`label`** adalah teks yang muncul di modal pilihan — isi sesuai kebutuhan (nama laga, film, siaran, dll).  
+**`url`** harus berupa URL embed (bukan URL biasa).
+
+---
+
+## Cara Mendapatkan URL Embed YouTube
+
+1. Buka video di YouTube
+2. Klik **Share → Embed**
+3. Salin bagian `src="..."` saja
+
+Contoh:
+```
+URL biasa  : https://www.youtube.com/watch?v=KlxyByEkWE4
+URL embed  : https://www.youtube.com/embed/KlxyByEkWE4  ✅
+```
+
+Untuk **live stream YouTube**, formatnya sama:
+```
+https://www.youtube.com/embed/ID_VIDEO_LIVE
+```
+
+---
+
+## Cara Ganti / Tambah Stream
+
+### 1. Buka Vercel Dashboard
+Pergi ke: [vercel.com](https://vercel.com) → Login → Pilih project
+
+### 2. Buka Environment Variables
+`Settings` → `Environment Variables` → cari `STREAM_DATA`
+
+### 3. Edit Nilainya
+
+**Contoh: 2 pertandingan**
+```json
+{"stream1":{"url":"https://www.youtube.com/embed/ABC123","label":"Meksiko vs Afrika Selatan"},"stream2":{"url":"https://www.youtube.com/embed/XYZ456","label":"Korea Selatan vs Cekia"}}
+```
+
+**Contoh: 3 pertandingan**
+```json
+{"stream1":{"url":"https://www.youtube.com/embed/AAA","label":"Brasil vs Maroko"},"stream2":{"url":"https://www.youtube.com/embed/BBB","label":"Jerman vs Pantai Gading"},"stream3":{"url":"https://www.youtube.com/embed/CCC","label":"Argentina vs Aljazair"}}
+```
+
+**Contoh: kosongkan semua stream (tidak ada yang tayang)**
+```json
+{}
+```
+
+> ⚠️ Pastikan JSON valid — tidak ada koma di akhir, semua tanda kutip benar.  
+> Gunakan [jsonlint.com](https://jsonlint.com) untuk validasi jika ragu.
+
+### 4. Simpan → Redeploy
+
+Setelah simpan, klik **Redeploy** (atau push commit baru ke GitHub).  
+Env var baru aktif **hanya setelah redeploy**.
+
+---
+
+## Verifikasi Stream Sudah Aktif
+
+Buka di browser:
+```
+https://domain-kamu.vercel.app/api/stream-data
+```
+
+Hasilnya harus JSON berisi stream yang kamu masukkan. Kalau masih `{}`, berarti belum redeploy.
+
+---
+
+## Perilaku Tombol "TONTON SEKARANG"
+
+| Jumlah stream | Perilaku tombol |
+|---|---|
+| 0 stream | Scroll ke jadwal |
+| 1 stream | Langsung buka player |
+| 2+ stream | Tampilkan modal pilihan, user klik salah satu |
+
+---
+
+## Ringkasan Perubahan yang Sudah Dilakukan
+
+| # | Perubahan | Keterangan |
+|---|---|---|
+| 1 | `getStream()` → `getStreams()` | Return array, support multi-stream per laga |
+| 2 | `makeTontonBtn()` | Loop array streams, 1 stream = 1 tombol |
+| 3 | Format env var | Dari `{key:{...}}` menjadi `{key:[{...}]}` lalu diubah lagi ke `{streamN:{...}}` |
+| 4 | `initLiveBanner` dihapus | Diganti `updateLiveBanner()` — fix ReferenceError yang membuat JS crash |
+| 5 | `scrollToNextStream()` | Tidak lagi matching ke jadwal — langsung baca `STREAM_LINKS` |
+| 6 | `openStreamPicker()` | Modal pilihan stream baru |
+| 7 | `pickStream()` / `closeStreamPicker()` | Handler pilihan stream |
+
+---
+
+## Troubleshooting
+
+**Tombol tidak membuka modal**
+→ Buka DevTools (F12) → Console, cari error merah
+→ Pastikan tidak ada `ReferenceError` di baris INIT
+
+**Stream kosong / tidak muncul pilihan**
+→ Cek `/api/stream-data` — harus return JSON berisi stream
+→ Pastikan sudah redeploy setelah edit env var
+
+**Video tidak muncul di player**
+→ Pastikan URL adalah format embed, bukan URL biasa YouTube
+→ Cek apakah video/live stream masih aktif
+
+**JSON error saat simpan env var**
+→ Validasi di [jsonlint.com](https://jsonlint.com) sebelum paste ke Vercel
+→ Pastikan semua dalam **satu baris** (tanpa newline)
+
+---
+
 
 ## 📁 Struktur File
 
 ```
-wc2026_enhanced/
-├── index.html      ← Website utama + integrasi API
-├── vercel.json     ← Konfigurasi Vercel
-└── README.md       ← Dokumentasi ini
+Jadwal-Piala-Dunia-2026---World-Cup-2026-Schedule/
+├── api/
+│   ├── fixtures.js
+│   ├── standings.js
+│   └── stream-data.js
+├── index.html
+├── vercel.json
+└── README.md
 ```
 
 ---
