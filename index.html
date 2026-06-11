@@ -64,7 +64,7 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 .sec-hdr-count{font-size:11px;color:#4a5568}
 
 /* ─── MATCH ROW ─── */
-.mr{display:grid;grid-template-columns:5px 100px 1fr auto;gap:0 12px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;transition:border-color .15s,background .15s}
+.mr{display:grid;grid-template-columns:5px 100px 1fr minmax(90px,auto);gap:0 12px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;transition:border-color .15s,background .15s}
 .mr:hover{border-color:#3a4a6a;background:#1e2840}
 .mr.done{opacity:.45}
 .mr.live-now{border-color:var(--red);background:rgba(226,75,74,0.07);box-shadow:0 0 20px var(--live-glow)}
@@ -77,7 +77,7 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 .flag{font-size:18px;line-height:1;flex-shrink:0}
 .vs{font-size:11px;color:var(--muted);font-weight:400}
 .venue-line{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.right-block{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.right-block{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;min-width:90px}
 .stage-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;letter-spacing:.4px}
 .group-tag{font-size:10px;padding:2px 8px;border-radius:6px}
 .status-badge{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600}
