@@ -1502,21 +1502,24 @@ function updateLiveBanner(){
 
 function scrollToNextStream(){
   var now = Date.now();
+  console.log('STREAM_LINKS:', STREAM_LINKS);
+  console.log('target done:', M.slice().reverse().find(function(x){
+    return getStatus(x,now)==='done' && getStreams(x);
+  }));
   var target = M.find(function(x){
-  return getStatus(x,now)==='live' && getStreams(x);
-}) || M.find(function(x){
-  return getStatus(x,now)==='upcoming' && getStreams(x);
-}) || M.slice().reverse().find(function(x){
-  return getStatus(x,now)==='done' && getStreams(x);
-});
-
-if(target){
-  var streams = getStreams(target);
-  if(streams && streams.length){
-    openStreamModal(streams[0].url, '📺 '+target.team1+' vs '+target.team2);
-    return;
+    return getStatus(x,now)==='live' && getStreams(x);
+  }) || M.find(function(x){
+    return getStatus(x,now)==='upcoming' && getStreams(x);
+  }) || M.slice().reverse().find(function(x){
+    return getStatus(x,now)==='done' && getStreams(x);
+  });
+  if(target){
+    var streams = getStreams(target);
+    if(streams && streams.length){
+      openStreamModal(streams[0].url, '📺 '+target.team1+' vs '+target.team2);
+      return;
+    }
   }
-}
   document.getElementById('view-jadwal').scrollIntoView({behavior:'smooth'});
 }
 
