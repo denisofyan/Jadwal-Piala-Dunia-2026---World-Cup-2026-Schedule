@@ -205,6 +205,33 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 .cd-val{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1}
 .cd-unit-label{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 
+/* ─── HARI INI SECTION ─── */
+.today-wrap{background:linear-gradient(135deg,rgba(24,95,165,0.1),rgba(239,159,39,0.05));border:1px solid rgba(24,95,165,0.3);border-radius:14px;padding:16px 18px;margin-bottom:20px}
+.today-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.today-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulse 1.5s infinite;flex-shrink:0}
+.today-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);letter-spacing:1px}
+.today-date-lbl{font-size:11px;color:var(--muted);margin-left:auto}
+.today-list{display:flex;flex-direction:column;gap:6px}
+.today-row{display:grid;grid-template-columns:5px 1fr auto;gap:0 12px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;transition:border-color .15s}
+.today-row:hover{border-color:#3a4a6a}
+.today-row.live-now{border-color:var(--red);background:rgba(226,75,74,0.07);box-shadow:0 0 16px var(--live-glow)}
+.today-row.done{opacity:.55}
+.today-info{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.today-time{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;flex-shrink:0}
+.today-teams{font-size:13px;font-weight:500;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.today-meta{font-size:10px;color:var(--muted);white-space:nowrap}
+.today-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* ─── TOMBOL TONTON ─── */
+.btn-tonton{display:inline-flex;align-items:center;gap:4px;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.3px;text-decoration:none;transition:background .15s,transform .1s;white-space:nowrap;line-height:1.4}
+.btn-tonton:active{transform:scale(.97)}
+.btn-tonton.t-live{background:var(--red);color:#fff}
+.btn-tonton.t-live:hover{background:#c93a39}
+.btn-tonton.t-soon{background:rgba(24,95,165,0.25);border:1px solid rgba(24,95,165,0.5);color:#5b9fd4}
+.btn-tonton.t-soon:hover{background:rgba(24,95,165,0.45)}
+.btn-tonton.t-done{background:rgba(80,80,80,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--muted)}
+.btn-tonton.sm{padding:3px 9px;font-size:10px}
+
 /* ─── FOOTER ─── */
 .footer{margin-top:60px;border-top:1px solid var(--border);padding:24px;text-align:center}
 .footer-text{font-size:12px;color:var(--muted)}
@@ -254,6 +281,18 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 <!-- ═══ JADWAL VIEW ═══ -->
 <div class="content">
 <div id="view-jadwal" class="view active">
+  <!-- ═══ PERTANDINGAN HARI INI ═══ -->
+  <div id="today-section" style="display:none">
+    <div class="today-wrap">
+      <div class="today-hdr">
+        <span class="today-dot"></span>
+        <span class="today-title">📺 Pertandingan Hari Ini</span>
+        <span class="today-date-lbl" id="today-date-lbl"></span>
+      </div>
+      <div class="today-list" id="today-list"></div>
+    </div>
+  </div>
+
   <div id="countdown-bar" class="countdown-bar" style="display:none">
     <div>
       <div class="cd-label">Pertandingan berikutnya</div>
@@ -336,8 +375,123 @@ var FLAGS = {
 };
 function flag(team){return FLAGS[team]||'🏳️'}
 
-// ═══════════════════════════════════════════════
-// MATCH DATA (ET = UTC-4, converted to WIB = UTC+7)
+// ════════════════════════════════════════════════════
+// SISTEM STREAM — jangan edit bagian ini
+// Link diambil otomatis dari streams.json
+// ════════════════════════════════════════════════════
+var STREAM_LINKS = {};
+
+// Cari link stream untuk sebuah pertandingan
+// Cek dua arah: "Tim1|Tim2" dan "Tim2|Tim1"
+function getStream(m){
+  var k1 = (m.team1||'')+'|'+(m.team2||'');
+  var k2 = (m.team2||'')+'|'+(m.team1||'');
+  return STREAM_LINKS[k1] || STREAM_LINKS[k2] || null;
+}
+
+// Buat HTML tombol Tonton sesuai status pertandingan
+function makeTontonBtn(stream, status, extraClass){
+  if(!stream) return '';
+  var ec = extraClass||'';
+  var lbl = stream.label||'Tonton';
+  if(status==='live') return '<a class="btn-tonton t-live '+ec+'" href="'+stream.url+'" target="_blank" rel="noopener">🔴 '+lbl+' Live</a>';
+  if(status==='done') return '<a class="btn-tonton t-done '+ec+'" href="'+stream.url+'" target="_blank" rel="noopener">🎬 Highlight</a>';
+  return                     '<a class="btn-tonton t-soon '+ec+'" href="'+stream.url+'" target="_blank" rel="noopener">📺 '+lbl+' Nanti</a>';
+}
+
+// Fetch streams.json dari server, lalu re-render
+async function loadStreams(){
+  try {
+    // ?t= supaya browser tidak pakai cache lama
+    var res = await fetch('./streams.json?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var data = await res.json();
+    STREAM_LINKS = data.streams||{};
+    console.log('[Streams] Loaded:', Object.keys(STREAM_LINKS).length, 'link(s)');
+    renderTodaySection();
+    renderJadwal();
+  } catch(e){
+    console.warn('[Streams] Gagal load streams.json:', e.message);
+  }
+}
+
+// Render kotak "Pertandingan Hari Ini"
+function renderTodaySection(){
+  var sec  = document.getElementById('today-section');
+  var cont = document.getElementById('today-list');
+  var lbl  = document.getElementById('today-date-lbl');
+  if(!sec||!cont) return;
+
+  var nowMs    = Date.now();
+  // Ambil tanggal hari ini dalam format WIB
+  var todayWIB = new Date().toLocaleDateString('id-ID',{
+    timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'
+  });
+
+  // Filter semua pertandingan yang jatuh hari ini (WIB)
+  var todayM = M.filter(function(x){
+    return x.d.toLocaleDateString('id-ID',{
+      timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'
+    }) === todayWIB;
+  });
+
+  // Kalau tidak ada pertandingan hari ini, sembunyikan section
+  if(!todayM.length){ sec.style.display='none'; return; }
+
+  sec.style.display = 'block';
+  lbl.textContent = new Date().toLocaleDateString('id-ID',{
+    timeZone:'Asia/Jakarta',weekday:'long',day:'numeric',month:'long',year:'numeric'
+  });
+
+  var html = '';
+  todayM.forEach(function(x){
+    // Pakai status dari API jika sudah tersedia, fallback ke kalkulasi lokal
+    var localSt = getStatus(x, nowMs);
+    var api     = (typeof getApiStatus==='function') ? getApiStatus(x, localSt) : {status:localSt,score:null,elapsed:null,phase:''};
+    var status  = api.status;
+    var isLive  = status==='live', isDone = status==='done';
+
+    var sc    = STAGE_COLORS[x.stage]||'#888';
+    var hc    = HEAT_COLORS[x.heat]||'#888';
+    var stLbl = x.stage==='32'?'R32':x.stage==='16'?'R16':x.stage==='Jrk3'?'Jrk3':x.stage;
+    var f1=flag(x.team1), f2=x.team2?flag(x.team2):'';
+    var stream = getStream(x);
+
+    // Skor live jika ada dari API
+    var scoreTxt='';
+    if(api.score!==null){
+      scoreTxt=' <span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:'+(isLive?'var(--red)':'#fff')+
+        ';letter-spacing:2px;padding:0 4px;background:rgba(0,0,0,.3);border-radius:4px">'+api.score+'</span>';
+      if(isLive&&api.elapsed) scoreTxt+='<span style="font-size:10px;color:var(--red);margin-left:3px">'+api.elapsed+"'</span>";
+    }
+
+    var teamsTxt = '<span class="flag">'+f1+'</span> '+x.team1+scoreTxt;
+    if(x.team2) teamsTxt+=' <span class="vs">vs</span> <span class="flag">'+f2+'</span> '+x.team2;
+
+    var badge = isLive ? '<span class="status-badge badge-live">● LIVE</span>'
+              : isDone ? '<span class="status-badge badge-done">Selesai</span>'
+              :          '<span class="status-badge badge-soon">Segera</span>';
+
+    html+=
+      '<div class="today-row'+(isLive?' live-now':'')+(isDone?' done':'')+'">'+
+        // Garis warna heat di kiri
+        '<div style="width:5px;min-height:44px;background:'+hc+';border-radius:3px 0 0 3px;opacity:'+(isDone?.5:1)+';flex-shrink:0"></div>'+
+        '<div class="today-info">'+
+          '<span class="today-time">'+fmtWIB(x.d)+'</span>'+
+          '<span class="today-teams">'+teamsTxt+'</span>'+
+          '<span class="today-meta">'+
+            '<span style="background:'+sc+'22;color:'+sc+';padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600">'+stLbl+'</span>'+
+            ' &nbsp;📍 '+x.venue.split(',')[0]+
+          '</span>'+
+        '</div>'+
+        '<div class="today-right">'+badge+' '+makeTontonBtn(stream, status, '')+
+        '</div>'+
+      '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+
 // ═══════════════════════════════════════════════
 function pm(dateStr,etH,etM,t1,t2,grp,stage,heat,venue){
   var d=new Date(dateStr+'T'+String(etH).padStart(2,'0')+':'+String(etM).padStart(2,'0')+':00-04:00');
@@ -506,6 +660,7 @@ function startCountdown(nextMatch){
 
 // ═══ RENDER JADWAL ═══
 function renderJadwal(){
+  renderTodaySection(); // selalu update seksi hari ini
   var now=Date.now();
   var q=(document.getElementById('search').value||'').toLowerCase();
   var allS=M.map(x=>({...x,status:getStatus(x,now)}));
@@ -576,22 +731,24 @@ function buildRow(x){
   var sc=STAGE_COLORS[x.stage]||'#888';
   var hc=HEAT_COLORS[x.heat]||'#888';
   var isDone=x.status==='done';
+  var isLive=x.status==='live';
   var stageLabel=x.stage==='32'?'R32':x.stage==='16'?'R16':x.stage==='Jrk3'?'Jrk3':x.stage;
   var f1=flag(x.team1),f2=x.team2?flag(x.team2):'';
   var teamsHtml='<span class="flag">'+f1+'</span>'+x.team1;
   if(x.team2) teamsHtml+=' <span class="vs">vs</span> <span class="flag">'+f2+'</span>'+x.team2;
-  var badge=x.status==='live'
+  var badge=isLive
     ?'<span class="status-badge badge-live">● LIVE</span>'
     :isDone?'<span class="status-badge badge-done">Selesai</span>'
     :'<span class="status-badge badge-soon">Segera</span>';
-  return '<div class="mr'+(isDone?' done':'')+(x.status==='live'?' live-now':'')+'">'+
+  var btn=makeTontonBtn(getStream(x), x.status, 'sm');
+  return '<div class="mr'+(isDone?' done':'')+(isLive?' live-now':'')+'">'+
     '<div class="heat-bar" style="background:'+hc+';opacity:'+(isDone?0.5:1)+'"></div>'+
     '<div class="mt-block"><div class="mt-date">'+fmtDate(x.d)+'</div><div class="mt-time">'+fmtWIB(x.d)+'</div></div>'+
     '<div class="teams-block"><div class="teams-line">'+teamsHtml+'</div><div class="venue-line">📍 '+x.venue+'</div></div>'+
     '<div class="right-block">'+
       '<span class="stage-tag" style="background:'+sc+'22;color:'+sc+'">'+stageLabel+'</span>'+
       '<span class="group-tag" style="background:#1e2840;color:var(--muted)">Grp '+x.group+'</span>'+
-      badge+
+      badge+btn+
     '</div></div>';
 }
 
@@ -1047,6 +1204,7 @@ buildRow = function(x){
   var badge=isLive?'<span class="status-badge badge-live">&#9679; LIVE</span>':
     isDone?'<span class="status-badge badge-done">Selesai</span>':
     '<span class="status-badge badge-soon">Segera</span>';
+  var btn=makeTontonBtn(getStream(x), api.status, 'sm');
   return '<div class="mr'+(isDone?' done':'')+(isLive?' live-now':'')+'">'+
     '<div class="heat-bar" style="background:'+hc+';opacity:'+(isDone?0.5:1)+'"></div>'+
     '<div class="mt-block"><div class="mt-date">'+fmtDate(x.d)+'</div><div class="mt-time">'+fmtWIB(x.d)+'</div></div>'+
@@ -1054,7 +1212,7 @@ buildRow = function(x){
     '<div class="right-block">'+
       '<span class="stage-tag" style="background:'+sc+'22;color:'+sc+'">'+stageLabel+'</span>'+
       '<span class="group-tag" style="background:#1e2840;color:var(--muted)">Grp '+x.group+'</span>'+
-      badge+
+      badge+btn+
     '</div></div>';
 };
 
@@ -1141,6 +1299,9 @@ function scrollBracket(dir){
   
 // ═══ INIT ═══
 renderJadwal();
+
+// Ambil stream links dari streams.json — jalan paralel, tidak blok halaman
+loadStreams();
 
 // Load cache lama dulu agar tampilan langsung terisi sebelum fetch
 (function loadInitialCache(){
