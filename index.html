@@ -261,6 +261,42 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
   .teams-line{font-size:12px}
   .stats-row{display:grid;grid-template-columns:1fr 1fr}
 }
+/* ─── LIVE BANNER ─── */
+.live-banner{position:relative;overflow:hidden;padding:28px 24px;background:linear-gradient(135deg,#0a0f1e 0%,#1a0a1e 40%,#0a1520 100%);border-bottom:2px solid rgba(226,75,74,0.4);cursor:pointer}
+.live-banner:hover .lb-btn{transform:scale(1.05)}
+.lb-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.lb-orb{position:absolute;border-radius:50%;filter:blur(60px);animation:orbFloat 6s ease-in-out infinite}
+.lb-orb:nth-child(1){width:300px;height:300px;background:rgba(226,75,74,0.2);top:-80px;left:-60px;animation-delay:0s}
+.lb-orb:nth-child(2){width:250px;height:250px;background:rgba(24,95,165,0.25);top:-40px;right:10%;animation-delay:2s}
+.lb-orb:nth-child(3){width:200px;height:200px;background:rgba(239,159,39,0.15);bottom:-60px;left:40%;animation-delay:4s}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.08)}}
+.lb-particles{position:absolute;inset:0}
+.lb-p{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,0.15);animation:pFloat linear infinite}
+@keyframes pFloat{0%{transform:translateY(100%) translateX(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-100px) translateX(20px);opacity:0}}
+.lb-inner{position:relative;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.lb-left{display:flex;align-items:center;gap:16px}
+.lb-icon{font-size:48px;line-height:1;filter:drop-shadow(0 0 20px rgba(226,75,74,0.6));animation:iconPulse 2s ease-in-out infinite}
+@keyframes iconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.lb-text{}
+.lb-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(226,75,74,0.2);border:1px solid rgba(226,75,74,0.4);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;color:var(--red);letter-spacing:1px;margin-bottom:6px}
+.lb-tag .dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite}
+.lb-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,52px);line-height:1;color:#fff;letter-spacing:2px;text-shadow:0 0 30px rgba(226,75,74,0.4)}
+.lb-title span{color:var(--red)}
+.lb-sub{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.3px}
+.lb-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
+.lb-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#E24B4A,#c93a39);border:none;border-radius:12px;padding:14px 28px;font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 24px rgba(226,75,74,0.5);transition:transform .2s,box-shadow .2s;white-space:nowrap}
+.lb-btn:hover{box-shadow:0 6px 32px rgba(226,75,74,0.7)}
+.lb-btn:active{transform:scale(.97)}
+.lb-btn-icon{font-size:20px}
+.lb-match{font-size:12px;color:rgba(255,255,255,0.5);text-align:right}
+.lb-match strong{color:rgba(255,255,255,0.8)}
+.lb-divider{position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(226,75,74,0.4),rgba(239,159,39,0.3),transparent)}
+@media(max-width:600px){
+  .lb-inner{justify-content:center;text-align:center}
+  .lb-right{align-items:center;width:100%}
+  .lb-match{text-align:center}
+  .lb-btn{padding:12px 24px;font-size:18px;width:100%;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -292,6 +328,32 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
   </div>
 </div>
 
+<!-- ═══ LIVE STREAM BANNER ═══ -->
+<div class="live-banner" id="live-banner">
+  <div class="lb-bg">
+    <div class="lb-orb"></div>
+    <div class="lb-orb"></div>
+    <div class="lb-orb"></div>
+    <div class="lb-particles" id="lb-particles"></div>
+  </div>
+  <div class="lb-inner">
+    <div class="lb-left">
+      <div class="lb-icon">⚽</div>
+      <div class="lb-text">
+        <div class="lb-tag"><span class="dot"></span>PIALA DUNIA 2026</div>
+        <div class="lb-title">TONTON <span>LIVE</span><br>STREAM GRATIS</div>
+        <div class="lb-sub" id="lb-sub">104 pertandingan &middot; USA &middot; MEX &middot; CAN</div>
+      </div>
+    </div>
+    <div class="lb-right">
+      <button class="lb-btn" id="lb-btn" onclick="scrollToNextStream()">
+        <span class="lb-btn-icon">📺</span> TONTON SEKARANG
+      </button>
+      <div class="lb-match" id="lb-match"></div>
+    </div>
+  </div>
+  <div class="lb-divider"></div>
+</div>
 <!-- ═══ JADWAL VIEW ═══ -->
 <div class="content">
 <div id="view-jadwal" class="view active">
@@ -786,6 +848,7 @@ function renderJadwal(){
     doneList.forEach(x=>html+=buildRow(x));
   }
   c.innerHTML=html;
+  updateLiveBanner();
 }
 
 function buildRow(x){
@@ -1364,9 +1427,73 @@ function scrollBracket(dir){
   if(!bracketScrollEl) return;
   bracketScrollEl.scrollBy({left: dir * 260, behavior: 'smooth'});
 }
-  
+// ─── Live Banner ───
+function initLiveBanner(){
+  // Buat partikel
+  var pc = document.getElementById('lb-particles');
+  if(pc){
+    for(var i=0;i<18;i++){
+      var p=document.createElement('div');
+      p.className='lb-p';
+      p.style.left=Math.random()*100+'%';
+      p.style.animationDuration=(4+Math.random()*6)+'s';
+      p.style.animationDelay=(Math.random()*6)+'s';
+      p.style.width=p.style.height=(2+Math.random()*3)+'px';
+      pc.appendChild(p);
+    }
+  }
+  updateLiveBanner();
+}
+
+function updateLiveBanner(){
+  var now = Date.now();
+  // Cari pertandingan live atau berikutnya yang punya stream
+  var nextWithStream = M.find(function(x){
+    return getStatus(x,now)!=='done' && getStream(x);
+  });
+  var liveWithStream = M.find(function(x){
+    return getStatus(x,now)==='live' && getStream(x);
+  });
+
+  var matchEl = document.getElementById('lb-match');
+  var subEl   = document.getElementById('lb-sub');
+  var btn     = document.getElementById('lb-btn');
+
+  if(liveWithStream){
+    var t = liveWithStream.team1+' vs '+liveWithStream.team2;
+    if(matchEl) matchEl.innerHTML = '🔴 LIVE: <strong>'+t+'</strong>';
+    if(subEl)   subEl.textContent = 'Pertandingan sedang berlangsung sekarang!';
+    if(btn)     btn.innerHTML = '<span class="lb-btn-icon">🔴</span> TONTON LIVE';
+  } else if(nextWithStream){
+    var t2 = nextWithStream.team1+' vs '+nextWithStream.team2;
+    if(matchEl) matchEl.innerHTML = 'Berikutnya: <strong>'+t2+'</strong> · '+fmtDate(nextWithStream.d)+' '+fmtWIB(nextWithStream.d);
+    if(subEl)   subEl.textContent = 'Stream tersedia untuk pertandingan ini';
+  }
+}
+
+function scrollToNextStream(){
+  var now = Date.now();
+  // Cari pertandingan live/berikutnya yang punya stream
+  var target = M.find(function(x){
+    return getStatus(x,now)==='live' && getStream(x);
+  }) || M.find(function(x){
+    return getStatus(x,now)!=='done' && getStream(x);
+  });
+
+  if(target){
+    var stream = getStream(target);
+    if(stream){
+      openStreamModal(stream.url, '📺 '+target.team1+' vs '+target.team2);
+      return;
+    }
+  }
+  // Fallback: scroll ke jadwal
+  document.getElementById('view-jadwal').scrollIntoView({behavior:'smooth'});
+}  
+
 // ═══ INIT ═══
 renderJadwal();
+initLiveBanner();
 
 // Ambil stream links dari streams.json — jalan paralel, tidak blok halaman
 loadStreams();
