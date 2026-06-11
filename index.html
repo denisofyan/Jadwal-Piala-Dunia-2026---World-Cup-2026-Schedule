@@ -1478,10 +1478,10 @@ function updateLiveBanner(){
   var now = Date.now();
   // Cari pertandingan live atau berikutnya yang punya stream
   var nextWithStream = M.find(function(x){
-    return getStatus(x,now)!=='done' && getStream(x);
+    return getStatus(x,now)!=='done' && getStreams(x);
   });
   var liveWithStream = M.find(function(x){
-    return getStatus(x,now)==='live' && getStream(x);
+    return getStatus(x,now)==='live' && getStreams(x);
   });
 
   var matchEl = document.getElementById('lb-match');
@@ -1501,6 +1501,7 @@ function updateLiveBanner(){
 }
 
 function scrollToNextStream(){
+  var now = Date.now();
   var target = M.find(function(x){
   return getStatus(x,now)==='live' && getStreams(x);
 }) || M.find(function(x){
