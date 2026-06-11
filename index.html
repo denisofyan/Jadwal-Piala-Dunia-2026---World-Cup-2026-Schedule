@@ -409,20 +409,19 @@ function flag(team){return FLAGS[team]||'🏳️'}
 
 // ════════════════════════════════════════════════════
 // SISTEM STREAM
-// Link diinject oleh Vercel saat build dari Environment Variables
+// URL stream disimpan di Vercel Environment Variables
+// Diambil via serverless function /api/stream-data
 // Tidak pernah ada di GitHub / repo publik
 // ════════════════════════════════════════════════════
 var STREAM_LINKS = {};
 
-// Cari link stream untuk sebuah pertandingan
-// Cek dua arah: "Tim1|Tim2" dan "Tim2|Tim1"
 function getStream(m){
   var k1 = (m.team1||'')+'|'+(m.team2||'');
   var k2 = (m.team2||'')+'|'+(m.team1||'');
   return STREAM_LINKS[k1] || STREAM_LINKS[k2] || null;
 }
 
-// Buka modal player — dipanggil dari tombol Tonton
+// ─── Modal Player ───
 function openStreamModal(url, title){
   var modal  = document.getElementById('stream-modal');
   var iframe = document.getElementById('modal-iframe');
@@ -434,12 +433,9 @@ function openStreamModal(url, title){
   iframe.src = '';
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
-  // Set src setelah frame direset agar loading muncul
   setTimeout(function(){ iframe.src = url; }, 80);
   iframe.onload = function(){ loading.classList.add('hidden'); };
 }
-
-// Tutup modal dan hentikan stream
 function closeStreamModal(){
   var modal  = document.getElementById('stream-modal');
   var iframe = document.getElementById('modal-iframe');
@@ -448,37 +444,36 @@ function closeStreamModal(){
   document.body.style.overflow = '';
   if(iframe) iframe.src = 'about:blank';
 }
-
-// Tutup dengan tombol Escape
 document.addEventListener('keydown', function(e){
   if(e.key==='Escape') closeStreamModal();
 });
 
-// Buat HTML tombol Tonton — klik buka modal (bukan tab baru)
+// Tombol Tonton — buka modal
 function makeTontonBtn(stream, status, extraClass){
   if(!stream) return '';
   var ec  = extraClass||'';
   var url = stream.url||'';
   var lbl = stream.label||'Tonton';
-  // Escape tanda kutip untuk keamanan atribut onclick
   var safeUrl   = url.replace(/'/g,"\\'");
-  var safeTitle = (lbl+' — '+status).replace(/'/g,"\\'");
+  var safeTitle = (lbl).replace(/'/g,"\\'");
   if(status==='live') return '<button class="btn-tonton t-live '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🔴 LIVE: '+safeTitle+'\')">🔴 '+lbl+' Live</button>';
   if(status==='done') return '<button class="btn-tonton t-done '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🎬 Highlight: '+safeTitle+'\')">🎬 Highlight</button>';
   return                     '<button class="btn-tonton t-soon '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'📺 '+safeTitle+'\')">📺 '+lbl+' Nanti</button>';
 }
 
-// Load stream links — diinject oleh Vercel saat build
-// Format: window.STREAM_DATA = {"Tim1|Tim2":{"url":"...","label":"Tonton"}, ...}
+// Fetch dari /api/stream-data (Vercel serverless)
 function loadStreams(){
-  if(window.STREAM_DATA && typeof window.STREAM_DATA === 'object'){
-    STREAM_LINKS = window.STREAM_DATA;
-    console.log('[Streams] Loaded dari env:', Object.keys(STREAM_LINKS).length, 'link(s)');
-  } else {
-    console.log('[Streams] Tidak ada stream data (STREAM_DATA kosong)');
-  }
-  renderTodaySection();
-  renderJadwal();
+  fetch('/api/stream-data')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      STREAM_LINKS = data || {};
+      console.log('[Streams] Loaded:', Object.keys(STREAM_LINKS).length, 'link(s)');
+      renderTodaySection();
+      renderJadwal();
+    })
+    .catch(function(e){
+      console.warn('[Streams] Gagal load:', e.message);
+    });
 }
 
 // Render kotak "Pertandingan Hari Ini"
