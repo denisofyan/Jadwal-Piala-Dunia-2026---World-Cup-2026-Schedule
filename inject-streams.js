@@ -46,7 +46,7 @@ html = html.replace(/<!-- STREAM_INJECT_START -->[\s\S]*?<!-- STREAM_INJECT_END 
 
 // Buat script inject
 const injectScript = `<!-- STREAM_INJECT_START -->
-<script>window.STREAM_DATA=${JSON.stringify(streamData)};</script>
+<script>window.STREAM_DATA=JSON.parse(${JSON.stringify(JSON.stringify(streamData))});</script>
 <!-- STREAM_INJECT_END -->`;
 
 // Sisipkan tepat sebelum </head>
