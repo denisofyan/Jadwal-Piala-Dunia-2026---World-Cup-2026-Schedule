@@ -1,6 +1,4 @@
 {
-  "buildCommand": "node inject-streams.js",
-  "outputDirectory": ".",
   "cleanUrls": true,
   "headers": [
     {
