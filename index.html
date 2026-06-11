@@ -1340,13 +1340,20 @@ async function refreshAll(){
   var ok=await fetchApiScores();
   if(ok) await fetchApiStandings();
   updateApiIndicator(ok);
+  
+  // Pastikan stream links sudah ada sebelum render
+  if(Object.keys(STREAM_LINKS).length === 0){
+    await fetch('/api/stream-data')
+      .then(function(r){ return r.json(); })
+      .then(function(data){ STREAM_LINKS = data || {}; })
+      .catch(function(){});
+  }
+  
   renderJadwal();
   var gv=document.getElementById('view-grup');
   if(gv&&gv.classList.contains('active')) renderGrup();
   var bv=document.getElementById('view-bracket');
   if(bv&&bv.classList.contains('active')) renderBracket();
-
-  // Sesuaikan interval secara dinamis setelah data diperbarui
   rescheduleInterval(pickInterval());
 }
 // ─── Bracket Navigation ───
