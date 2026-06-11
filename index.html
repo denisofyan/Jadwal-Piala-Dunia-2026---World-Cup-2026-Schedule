@@ -1499,28 +1499,65 @@ function updateLiveBanner(){
     if(subEl)   subEl.textContent = 'Stream tersedia untuk pertandingan ini';
   }
 }
+function openStreamPicker(){
+  var existing = document.getElementById('stream-picker');
+  if(existing) existing.remove();
+
+  var keys = Object.keys(STREAM_LINKS);
+  var items = keys.map(function(k){
+    var s = STREAM_LINKS[k];
+    return '<button onclick="pickStream(\''+k+'\')" style="'+
+      'display:block;width:100%;text-align:left;padding:14px 18px;'+
+      'background:var(--card);border:1px solid var(--border);border-radius:10px;'+
+      'color:var(--text);font-size:14px;font-weight:500;cursor:pointer;'+
+      'margin-bottom:8px">'+
+      '📺 '+s.label+
+    '</button>';
+  }).join('');
+
+  var html =
+    '<div id="stream-picker" style="'+
+      'display:flex;position:fixed;inset:0;z-index:10000;'+
+      'align-items:center;justify-content:center;padding:16px">'+
+      '<div onclick="closeStreamPicker()" style="position:absolute;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(5px)"></div>'+
+      '<div style="position:relative;z-index:1;width:100%;max-width:420px;'+
+        'background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'+
+          '<span style="font-size:15px;font-weight:700;color:#fff">Pilih Stream</span>'+
+          '<button onclick="closeStreamPicker()" style="background:rgba(255,255,255,.08);border:none;'+
+            'color:var(--muted);font-size:20px;cursor:pointer;padding:2px 9px;border-radius:6px">&times;</button>'+
+        '</div>'+
+        items+
+      '</div>'+
+    '</div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function pickStream(key){
+  var s = STREAM_LINKS[key];
+  if(!s) return;
+  closeStreamPicker();
+  openStreamModal(s.url, s.label);
+}
+
+function closeStreamPicker(){
+  var el = document.getElementById('stream-picker');
+  if(el) el.remove();
+}
 
 function scrollToNextStream(){
-  var now = Date.now();
-  console.log('STREAM_LINKS:', STREAM_LINKS);
-  console.log('target done:', M.slice().reverse().find(function(x){
-    return getStatus(x,now)==='done' && getStreams(x);
-  }));
-  var target = M.find(function(x){
-    return getStatus(x,now)==='live' && getStreams(x);
-  }) || M.find(function(x){
-    return getStatus(x,now)==='upcoming' && getStreams(x);
-  }) || M.slice().reverse().find(function(x){
-    return getStatus(x,now)==='done' && getStreams(x);
-  });
-  if(target){
-    var streams = getStreams(target);
-    if(streams && streams.length){
-      openStreamModal(streams[0].url, '📺 '+target.team1+' vs '+target.team2);
-      return;
-    }
+  var keys = Object.keys(STREAM_LINKS);
+  if(!keys.length){
+    document.getElementById('view-jadwal').scrollIntoView({behavior:'smooth'});
+    return;
   }
-  document.getElementById('view-jadwal').scrollIntoView({behavior:'smooth'});
+  if(keys.length === 1){
+    var s = STREAM_LINKS[keys[0]];
+    openStreamModal(s.url, s.label);
+    return;
+  }
+  openStreamPicker();
 }
 
 // ═══ INIT ═══
