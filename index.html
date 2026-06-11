@@ -232,6 +232,20 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
 .btn-tonton.t-done{background:rgba(80,80,80,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--muted)}
 .btn-tonton.sm{padding:3px 9px;font-size:10px}
 
+/* ─── MODAL PLAYER ─── */
+#stream-modal{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:16px}
+#stream-modal.open{display:flex}
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(5px)}
+.modal-box{position:relative;z-index:1;width:100%;max-width:920px;background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 0 80px rgba(0,0,0,.7)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);gap:10px}
+.modal-title{font-size:14px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal-close{background:rgba(255,255,255,.08);border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 9px;border-radius:6px;flex-shrink:0;transition:background .15s,color .15s}
+.modal-close:hover{background:rgba(255,255,255,.15);color:#fff}
+.modal-body{position:relative;width:100%;padding-top:56.25%;background:#000}
+.modal-body iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.modal-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;background:#000;transition:opacity .3s}
+.modal-loading.hidden{opacity:0;pointer-events:none}
+
 /* ─── FOOTER ─── */
 .footer{margin-top:60px;border-top:1px solid var(--border);padding:24px;text-align:center}
 .footer-text{font-size:12px;color:var(--muted)}
@@ -355,6 +369,24 @@ body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min
   <div class="footer-brand">Deploy by <span>Maulana</span> &mdash; Piala Dunia 2026</div>
 </div>
 
+<!-- ═══ MODAL STREAM PLAYER ═══ -->
+<div id="stream-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-backdrop" onclick="closeStreamModal()"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Menonton Live Stream</span>
+      <button class="modal-close" onclick="closeStreamModal()" title="Tutup (Esc)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-loading" id="modal-loading">⏳ Memuat stream...</div>
+      <iframe id="modal-iframe" src="about:blank" allowfullscreen
+        allow="autoplay; encrypted-media; picture-in-picture"
+        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox">
+      </iframe>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 // FLAG EMOJI MAP
@@ -376,8 +408,9 @@ var FLAGS = {
 function flag(team){return FLAGS[team]||'🏳️'}
 
 // ════════════════════════════════════════════════════
-// SISTEM STREAM — jangan edit bagian ini
-// Link diambil otomatis dari streams.json
+// SISTEM STREAM
+// Link diinject oleh Vercel saat build dari Environment Variables
+// Tidak pernah ada di GitHub / repo publik
 // ════════════════════════════════════════════════════
 var STREAM_LINKS = {};
 
@@ -389,30 +422,63 @@ function getStream(m){
   return STREAM_LINKS[k1] || STREAM_LINKS[k2] || null;
 }
 
-// Buat HTML tombol Tonton sesuai status pertandingan
-function makeTontonBtn(stream, status, extraClass){
-  if(!stream) return '';
-  var ec = extraClass||'';
-  var lbl = stream.label||'Tonton';
-  if(status==='live') return '<a class="btn-tonton t-live '+ec+'" href="'+stream.url+'" target="_blank" rel="noopener">🔴 '+lbl+' Live</a>';
-  if(status==='done') return '<a class="btn-tonton t-done '+ec+'" href="'+stream.url+'" target="_blank" rel="noopener">🎬 Highlight</a>';
-  return                     '<a class="btn-tonton t-soon '+ec+'" href="'+stream.url+'" target="_blank" rel="noopener">📺 '+lbl+' Nanti</a>';
+// Buka modal player — dipanggil dari tombol Tonton
+function openStreamModal(url, title){
+  var modal  = document.getElementById('stream-modal');
+  var iframe = document.getElementById('modal-iframe');
+  var loading= document.getElementById('modal-loading');
+  var ttl    = document.getElementById('modal-title');
+  if(!modal||!iframe) return;
+  ttl.textContent = title||'Menonton Live Stream';
+  loading.classList.remove('hidden');
+  iframe.src = '';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Set src setelah frame direset agar loading muncul
+  setTimeout(function(){ iframe.src = url; }, 80);
+  iframe.onload = function(){ loading.classList.add('hidden'); };
 }
 
-// Fetch streams.json dari server, lalu re-render
-async function loadStreams(){
-  try {
-    // ?t= supaya browser tidak pakai cache lama
-    var res = await fetch('./streams.json?t='+Date.now());
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    var data = await res.json();
-    STREAM_LINKS = data.streams||{};
-    console.log('[Streams] Loaded:', Object.keys(STREAM_LINKS).length, 'link(s)');
-    renderTodaySection();
-    renderJadwal();
-  } catch(e){
-    console.warn('[Streams] Gagal load streams.json:', e.message);
+// Tutup modal dan hentikan stream
+function closeStreamModal(){
+  var modal  = document.getElementById('stream-modal');
+  var iframe = document.getElementById('modal-iframe');
+  if(!modal) return;
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+  if(iframe) iframe.src = 'about:blank';
+}
+
+// Tutup dengan tombol Escape
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape') closeStreamModal();
+});
+
+// Buat HTML tombol Tonton — klik buka modal (bukan tab baru)
+function makeTontonBtn(stream, status, extraClass){
+  if(!stream) return '';
+  var ec  = extraClass||'';
+  var url = stream.url||'';
+  var lbl = stream.label||'Tonton';
+  // Escape tanda kutip untuk keamanan atribut onclick
+  var safeUrl   = url.replace(/'/g,"\\'");
+  var safeTitle = (lbl+' — '+status).replace(/'/g,"\\'");
+  if(status==='live') return '<button class="btn-tonton t-live '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🔴 LIVE: '+safeTitle+'\')">🔴 '+lbl+' Live</button>';
+  if(status==='done') return '<button class="btn-tonton t-done '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'🎬 Highlight: '+safeTitle+'\')">🎬 Highlight</button>';
+  return                     '<button class="btn-tonton t-soon '+ec+'" onclick="openStreamModal(\''+safeUrl+'\',\'📺 '+safeTitle+'\')">📺 '+lbl+' Nanti</button>';
+}
+
+// Load stream links — diinject oleh Vercel saat build
+// Format: window.STREAM_DATA = {"Tim1|Tim2":{"url":"...","label":"Tonton"}, ...}
+function loadStreams(){
+  if(window.STREAM_DATA && typeof window.STREAM_DATA === 'object'){
+    STREAM_LINKS = window.STREAM_DATA;
+    console.log('[Streams] Loaded dari env:', Object.keys(STREAM_LINKS).length, 'link(s)');
+  } else {
+    console.log('[Streams] Tidak ada stream data (STREAM_DATA kosong)');
   }
+  renderTodaySection();
+  renderJadwal();
 }
 
 // Render kotak "Pertandingan Hari Ini"
